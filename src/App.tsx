@@ -23,6 +23,7 @@ function App() {
   }, []);
 
   if (loading) {
+    console.log("user : ", user);
     return <LoadingScreen />;
   }
 
