@@ -72,6 +72,12 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     
     try {
       clearAuthError();
+      
+      // Log current domain for debugging
+      console.log('Current domain:', window.location.origin);
+      console.log('Current hostname:', window.location.hostname);
+      console.log('Current port:', window.location.port);
+      
       const result = await signInWithPopup(auth, provider);
       
       // Get the access token for Gmail API
@@ -82,16 +88,22 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       }
     } catch (error) {
       const authError = error as AuthError;
+      console.error('Full auth error:', authError);
+      
       if (authError.code === 'auth/popup-blocked') {
         try {
           // If popup is blocked, fall back to redirect
+          console.log('Popup blocked, trying redirect...');
           await signInWithRedirect(auth, provider);
         } catch (redirectError) {
           console.error('Error signing in with redirect', redirectError);
           setAuthError('An error occurred while signing in. Please try again.');
         }
+      } else if (authError.code === 'auth/unauthorized-domain') {
+        console.error('Unauthorized domain error. Current origin:', window.location.origin);
+        setAuthError(`Domain authorization error. Please ensure ${window.location.origin} is added to Firebase authorized domains.`);
       } else {
-        setAuthError('An error occurred while signing in with Google. Please try again.');
+        setAuthError(`Authentication error: ${authError.message}`);
         console.error('Error signing in with Google', error);
       }
     }
