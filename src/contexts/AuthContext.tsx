@@ -42,10 +42,40 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [authError, setAuthError] = useState<string | null>(null);
   const auth = getAuth(app);
 
+  // Function to refresh the access token
+  const refreshAccessToken = async (user: User) => {
+    try {
+      const token = await user.getIdToken(true); // Force refresh
+      (user as any).accessToken = token;
+      setUser({ ...user }); // Trigger re-render with new token
+    } catch (error) {
+      console.error('Error refreshing token:', error);
+      // If token refresh fails, sign out the user
+      await signOut(auth);
+    }
+  };
+
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setUser(user);
-      setLoading(false);
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        // Get initial token
+        const token = await user.getIdToken();
+        (user as any).accessToken = token;
+        
+        // Set up token refresh
+        const refreshInterval = setInterval(() => {
+          refreshAccessToken(user);
+        }, 50 * 60 * 1000); // Refresh every 50 minutes (tokens typically last 1 hour)
+        
+        setUser(user);
+        setLoading(false);
+        
+        // Cleanup interval on unmount
+        return () => clearInterval(refreshInterval);
+      } else {
+        setUser(null);
+        setLoading(false);
+      }
     });
 
     // Check for redirect result when the component mounts
