@@ -1,4 +1,5 @@
 import { useAuth } from '../contexts/AuthContext';
+import React from 'react';
 
 export interface GmailMessage {
   id: string;
@@ -28,11 +29,13 @@ export interface GmailResponse {
 }
 
 class GmailService {
+  private accessToken: string | null = null;
+
+  setAccessToken(token: string | null) {
+    this.accessToken = token;
+  }
   private async getAccessToken(): Promise<string | null> {
-    const auth = useAuth();
-    if (!auth.user) return null;
-    // Get the Google OAuth access token that was stored during sign in
-    return (auth.user as any).accessToken || null;
+    return this.accessToken;
   }
 
   async searchEmails(query: string, maxResults: number = 100): Promise<GmailResponse> {
@@ -168,6 +171,22 @@ class GmailService {
     );
     return header?.value || '';
   }
+}
+
+export function useGmailService() {
+  const auth = useAuth();
+  const service = new GmailService();
+  
+  // Set the access token whenever auth changes
+  React.useEffect(() => {
+    if (auth.user) {
+      service.setAccessToken((auth.user as any).accessToken || null);
+    } else {
+      service.setAccessToken(null);
+    }
+  }, [auth.user]);
+
+  return service;
 }
 
 export const gmailService = new GmailService();
