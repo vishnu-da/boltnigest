@@ -32,9 +32,11 @@ class GmailService {
   private accessToken: string | null = null;
 
   setAccessToken(token: string | null) {
+    console.log('Setting access token in GmailService:', token ? 'Token present' : 'Token null');
     this.accessToken = token;
   }
   private async getAccessToken(): Promise<string | null> {
+    console.log('Getting access token from GmailService:', this.accessToken ? 'Token present' : 'Token null');
     return this.accessToken;
   }
 
