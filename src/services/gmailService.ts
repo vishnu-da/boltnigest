@@ -28,14 +28,14 @@ export interface GmailResponse {
 }
 
 class GmailService {
-  private getAccessToken(): string | null {
-    // Get the access token from Firebase Auth
+  private async getAccessToken(): Promise<string | null> {
     const auth = useAuth();
-    return auth.user?.accessToken || null;
+    if (!auth.user) return null;
+    return auth.user.getIdToken();
   }
 
   async searchEmails(query: string, maxResults: number = 100): Promise<GmailResponse> {
-    const accessToken = this.getAccessToken();
+    const accessToken = await this.getAccessToken();
     console.log('accessToken', accessToken);
     if (!accessToken) {
       throw new Error('No access token available');
