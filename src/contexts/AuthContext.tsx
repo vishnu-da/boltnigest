@@ -10,7 +10,8 @@ import {
   User,
   AuthError
 } from 'firebase/auth';
-import { app } from '../firebase/config';
+import { doc, setDoc, getDoc } from 'firebase/firestore';
+import { app, db } from '../firebase/config';
 
 interface AuthContextType {
   user: User | null;
@@ -42,6 +43,34 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [authError, setAuthError] = useState<string | null>(null);
   const auth = getAuth(app);
 
+  // Function to create or update user document in Firestore
+  const createOrUpdateUserDocument = async (user: User) => {
+    try {
+      const userRef = doc(db, 'users', user.uid);
+      const userDoc = await getDoc(userRef);
+
+      if (!userDoc.exists()) {
+        // Create new user document
+        await setDoc(userRef, {
+          id: user.uid,
+          email: user.email,
+          displayName: user.displayName,
+          photoURL: user.photoURL,
+          createdAt: new Date().toISOString(),
+          lastLogin: new Date().toISOString()
+        });
+      } else {
+        // Update last login
+        await setDoc(userRef, {
+          lastLogin: new Date().toISOString()
+        }, { merge: true });
+      }
+    } catch (error) {
+      console.error('Error creating/updating user document:', error);
+      throw error;
+    }
+  };
+
   // Function to refresh the access token
   const refreshAccessToken = async (user: User) => {
     try {
@@ -58,20 +87,29 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
-        // Get initial token
-        const token = await user.getIdToken();
-        (user as any).accessToken = token;
-        
-        // Set up token refresh
-        const refreshInterval = setInterval(() => {
-          refreshAccessToken(user);
-        }, 50 * 60 * 1000); // Refresh every 50 minutes (tokens typically last 1 hour)
-        
-        setUser(user);
-        setLoading(false);
-        
-        // Cleanup interval on unmount
-        return () => clearInterval(refreshInterval);
+        try {
+          // Create or update user document
+          await createOrUpdateUserDocument(user);
+          
+          // Get initial token
+          const token = await user.getIdToken();
+          (user as any).accessToken = token;
+          
+          // Set up token refresh
+          const refreshInterval = setInterval(() => {
+            refreshAccessToken(user);
+          }, 50 * 60 * 1000); // Refresh every 50 minutes (tokens typically last 1 hour)
+          
+          setUser(user);
+          setLoading(false);
+          
+          // Cleanup interval on unmount
+          return () => clearInterval(refreshInterval);
+        } catch (error) {
+          console.error('Error setting up user:', error);
+          setAuthError('Error setting up your account. Please try again.');
+          await signOut(auth);
+        }
       } else {
         setUser(null);
         setLoading(false);
