@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { collection, query, orderBy, getDocs, addDoc } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import { useAuth } from '../contexts/AuthContext';
-import { gmailService } from '../services/gmailService';
+import { useGmailService } from '../services/gmailService';
 import { aiService } from '../services/aiService';
 
 export interface Summary {
@@ -16,10 +16,11 @@ export interface Summary {
 }
 
 export function useSummaries() {
+  const { user } = useAuth();
+  const gmailService = useGmailService();
   const [summaries, setSummaries] = useState<Summary[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isGenerating, setIsGenerating] = useState(false);
-  const { user } = useAuth();
 
   const fetchSummaries = async () => {
     if (!user) return;
