@@ -11,10 +11,18 @@ service cloud.firestore {
       return isAuthenticated() && request.auth.uid == userId;
     }
 
+    // Helper function to check if this is a new user document
+    function isNewUserDocument(userId) {
+      return isAuthenticated() 
+        && request.auth.uid == userId 
+        && !exists(/databases/$(database)/documents/users/$(userId));
+    }
+
     // Users collection rules
     match /users/{userId} {
       // Allow users to read/write their own document
-      allow read, write: if isOwner(userId);
+      // Also allow creation of new user documents during sign-in
+      allow read, write: if isOwner(userId) || isNewUserDocument(userId);
       
       // Newsletters subcollection rules
       match /newsletters/{newsletterId} {
