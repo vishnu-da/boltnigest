@@ -178,10 +178,10 @@ class GmailService {
 
 export function useGmailService() {
   const auth = useAuth();
-  const service = new GmailService();
+  const service = React.useMemo(() => new GmailService(), []);
   
   // Set the access token whenever auth changes
- React.useEffect(() => {
+  React.useEffect(() => {
     console.log('Auth state changed in useGmailService:', auth.user ? 'User present' : 'No user');
     console.log('User access token:', auth.user ? (auth.user as any).accessToken ? 'Present' : 'Missing' : 'No user');
     
@@ -192,7 +192,7 @@ export function useGmailService() {
     } else {
       service.setAccessToken(null);
     }
-  }, [auth.user]);
+  }, [auth.user, service]);
 
   return service;
 }
