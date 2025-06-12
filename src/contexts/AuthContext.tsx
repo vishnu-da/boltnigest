@@ -43,40 +43,6 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [authError, setAuthError] = useState<string | null>(null);
   const auth = getAuth(app);
 
-  // Function to get a fresh Gmail access token
-  const getGmailAccessToken = async (user: User) => {
-    try {
-      // Get a fresh ID token
-      const idToken = await user.getIdToken(true);
-      
-      // Get a fresh Gmail access token using the ID token
-      const response = await fetch('https://oauth2.googleapis.com/token', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: new URLSearchParams({
-          grant_type: 'urn:ietf:params:oauth:grant-type:token-exchange',
-          subject_token_type: 'urn:ietf:params:oauth:token-type:id_token',
-          client_id: import.meta.env.VITE_FIREBASE_API_KEY,
-          subject_token: idToken,
-          requested_token_type: 'urn:ietf:params:oauth:token-type:access_token',
-          scope: 'https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/gmail.modify'
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to get Gmail access token');
-      }
-
-      const data = await response.json();
-      return data.access_token;
-    } catch (error) {
-      console.error('Error getting Gmail access token:', error);
-      throw error;
-    }
-  };
-
   // Function to create or update user document in Firestore
   const createOrUpdateUserDocument = async (user: User) => {
     try {
@@ -105,6 +71,19 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     }
   };
 
+  // Function to refresh the access token
+  const refreshAccessToken = async (user: User) => {
+    try {
+      const token = await user.getIdToken(true); // Force refresh
+      (user as any).accessToken = token;
+      setUser({ ...user }); // Trigger re-render with new token
+    } catch (error) {
+      console.error('Error refreshing token:', error);
+      // If token refresh fails, sign out the user
+      await signOut(auth);
+    }
+  };
+
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
@@ -112,22 +91,14 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
           // Create or update user document
           await createOrUpdateUserDocument(user);
           
-          // Get initial Gmail access token
-          const gmailToken = await getGmailAccessToken(user);
-          (user as any).accessToken = gmailToken;
+          // Get initial token
+          const token = await user.getIdToken();
+          (user as any).accessToken = token;
           
           // Set up token refresh
-          const refreshInterval = setInterval(async () => {
-            try {
-              const newToken = await getGmailAccessToken(user);
-              (user as any).accessToken = newToken;
-              setUser({ ...user }); // Trigger re-render with new token
-            } catch (error) {
-              console.error('Error refreshing Gmail token:', error);
-              // If token refresh fails, sign out the user
-              await signOut(auth);
-            }
-          }, 45 * 60 * 1000); // Refresh every 45 minutes (tokens typically last 1 hour)
+          const refreshInterval = setInterval(() => {
+            refreshAccessToken(user);
+          }, 50 * 60 * 1000); // Refresh every 50 minutes (tokens typically last 1 hour)
           
           setUser(user);
           setLoading(false);
@@ -177,10 +148,12 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       
       const result = await signInWithPopup(auth, provider);
       
-      // Get the initial Gmail access token
-      const gmailToken = await getGmailAccessToken(result.user);
-      (result.user as any).accessToken = gmailToken;
-      
+      // Get the access token for Gmail API
+      const credential = GoogleAuthProvider.credentialFromResult(result);
+      if (credential?.accessToken) {
+        // Store the access token for Gmail API calls
+        (result.user as any).accessToken = credential.accessToken;
+      }
     } catch (error) {
       const authError = error as AuthError;
       console.error('Full auth error:', authError);
