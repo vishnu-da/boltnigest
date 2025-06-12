@@ -95,6 +95,10 @@ class GmailService {
         'bulletin',
         'briefing',
         'Market Insights'
+        // TAAFT specific queries
+        'from:hi@mail.theresanaiforthat.com',
+        'subject:"Disney and Universal Sue Midjourney"',
+        'from:"TAAFT - There\'s An AI For That"'
       ];
 
       const allMessages: GmailMessage[] = [];
