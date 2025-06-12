@@ -41,6 +41,7 @@ class GmailService {
   }
 
   async searchEmails(query: string, maxResults: number = 100): Promise<GmailResponse> {
+    console.log('accessToken in searchEmails', this.accessToken);
     const accessToken = await this.getAccessToken();
     console.log('accessToken', accessToken);
     if (!accessToken) {
