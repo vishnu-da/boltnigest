@@ -59,7 +59,7 @@ class GmailService {
   }
 
   async getMessage(messageId: string): Promise<GmailMessage> {
-    const accessToken = this.getAccessToken();
+    const accessToken = await this.getAccessToken();
     if (!accessToken) {
       throw new Error('No access token available');
     }
