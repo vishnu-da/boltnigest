@@ -94,7 +94,7 @@ class GmailService {
         'update',
         'bulletin',
         'briefing',
-        'Market Insights'
+        'Market Insights',
         // TAAFT specific queries
         'from:hi@mail.theresanaiforthat.com',
         'subject:"Disney and Universal Sue Midjourney"',
