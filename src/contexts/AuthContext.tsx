@@ -43,18 +43,13 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const auth = getAuth(app);
 
   useEffect(() => {
-    console.log('Setting up auth state listener...');
     const unsubscribe = onAuthStateChanged(auth, (user) => {
-      console.log('Auth state changed:', user ? 'User logged in' : 'No user');
-      console.log('User details:', user);
       setUser(user);
       setLoading(false);
     });
 
     // Check for redirect result when the component mounts
-    getRedirectResult(auth).then((result) => {
-      console.log('Redirect result:', result);
-    }).catch((error) => {
+    getRedirectResult(auth).catch((error) => {
       console.error('Error getting redirect result', error);
       if (error.code !== 'auth/credential-already-in-use') {
         setAuthError('An error occurred during sign in. Please try again.');
