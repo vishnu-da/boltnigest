@@ -36,6 +36,7 @@ class GmailService {
 
   async searchEmails(query: string, maxResults: number = 100): Promise<GmailResponse> {
     const accessToken = this.getAccessToken();
+    console.log('accessToken', accessToken);
     if (!accessToken) {
       throw new Error('No access token available');
     }
