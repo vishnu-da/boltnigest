@@ -31,7 +31,8 @@ class GmailService {
   private async getAccessToken(): Promise<string | null> {
     const auth = useAuth();
     if (!auth.user) return null;
-    return auth.user.getIdToken();
+    // Get the Google OAuth access token that was stored during sign in
+    return (auth.user as any).accessToken || null;
   }
 
   async searchEmails(query: string, maxResults: number = 100): Promise<GmailResponse> {
